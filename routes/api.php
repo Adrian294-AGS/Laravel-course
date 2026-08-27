@@ -1,36 +1,18 @@
 <?php
 
-use App\Models\User;
-use Illuminate\Http\Request;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-*/
+// POST /api/users
+Route::post('/users', [UserController::class, 'store']);
 
-// POST /api/users — create a new user
-Route::post('/users', function (Request $request) {
-    $validated = $request->validate([
-        'name' => 'required|string|max:255',
-        'email' => 'required|email|unique:users,email',
-        'password' => 'required|string|min:6',
-    ]);
+// GET /api/users
+Route::get('/users', [UserController::class, 'index']);
 
-    $user = User::create([
-        'name' => $validated['name'],
-        'email' => $validated['email'],
-        'password' => bcrypt($validated['password']),
-    ]);
+Route::get('/profile', [UserController::class, 'profile']);
 
-    return response()->json([
-        'message' => 'User created successfully',
-        'user' => $user
-    ], 201);
-});
+// PUT /api/users/{id}
+Route::put('/users/{id}', [UserController::class, 'update']);
 
-// GET /api/users — list all users
-Route::get('/users', function () {
-    return response()->json(User::all());
-});
+// DELETE /api/users/{id}
+Route::delete('/users/{id}', [UserController::class, 'destroy']);
