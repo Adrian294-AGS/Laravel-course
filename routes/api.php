@@ -1,18 +1,20 @@
 <?php
 
-use App\Http\Controllers\UserController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\EmployeeController;
 use Illuminate\Support\Facades\Route;
 
-// POST /api/users
-Route::post('/users', [UserController::class, 'store']);
+// Public routes
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
 
-// GET /api/users
-Route::get('/users', [UserController::class, 'index']);
-
-Route::get('/profile', [UserController::class, 'profile']);
-
-// PUT /api/users/{id}
-Route::put('/users/{id}', [UserController::class, 'update']);
-
-// DELETE /api/users/{id}
-Route::delete('/users/{id}', [UserController::class, 'destroy']);
+// Protected routes (require authentication)
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    
+    Route::get('/employees', [EmployeeController::class, 'index']);
+    Route::post('/employees', [EmployeeController::class, 'store']);
+    Route::get('/employees/{id}', [EmployeeController::class, 'show']);
+    Route::put('/employees/{id}', [EmployeeController::class, 'update']);
+    Route::delete('/employees/{id}', [EmployeeController::class, 'destroy']);
+});
