@@ -1,0 +1,134 @@
+{
+  "info": {
+    "_postman_id": "4eae5a04-2f87-43ea-a973-0e4d644db472",
+    "name": "Laravel Employee Service API",
+    "description": "Employee directory API. Run Login first to populate the collection token variable.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000/api" },
+    { "key": "token", "value": "" },
+    { "key": "employeeId", "value": "1" },
+    { "key": "departmentId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Login",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"CollegeAdmin123!\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/login"
+      },
+      "event": [{
+        "listen": "test",
+        "script": {
+          "type": "text/javascript",
+          "exec": [
+            "if (pm.response.code === 200) {",
+            "  pm.collectionVariables.set('token', pm.response.json().data.token);",
+            "}"
+          ]
+        }
+      }]
+    },
+    {
+      "name": "Logout",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": "{{baseUrl}}/logout"
+      }
+    },
+    {
+      "name": "List departments",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": "{{baseUrl}}/departments"
+      }
+    },
+    {
+      "name": "List employees",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": {
+          "raw": "{{baseUrl}}/employees?search={{search}}&employment_status={{employmentStatus}}&per_page=10",
+          "host": ["{{baseUrl}}"],
+          "path": ["employees"],
+          "query": [
+            { "key": "search", "value": "{{search}}", "disabled": true },
+            { "key": "employment_status", "value": "{{employmentStatus}}", "disabled": true },
+            { "key": "per_page", "value": "10" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get employee",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "GET",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": "{{baseUrl}}/employees/{{employeeId}}"
+      }
+    },
+    {
+      "name": "Create employee",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"department_id\": {{departmentId}},\n  \"employee_number\": \"EMP-1003\",\n  \"first_name\": \"Jordan\",\n  \"last_name\": \"Lee\",\n  \"email\": \"jordan.lee@example.edu\",\n  \"position\": \"Records Officer\",\n  \"employment_status\": \"Active\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/employees"
+      }
+    },
+    {
+      "name": "Update employee",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          { "key": "Accept", "value": "application/json" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"position\": \"Senior Records Officer\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/employees/{{employeeId}}"
+      }
+    },
+    {
+      "name": "Delete employee",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Accept", "value": "application/json" }],
+        "url": "{{baseUrl}}/employees/{{employeeId}}"
+      }
+    }
+  ]
+}

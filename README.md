@@ -57,10 +57,10 @@ If you already have a `.env` file, do not run `Copy-Item` again because it would
 
     ```powershell
     php artisan config:clear
-    php artisan migrate
+      php artisan migrate --seed
     ```
 
-This creates the required Laravel tables and the `employees` table with `id`, `name`, `position`, and timestamps.
+This creates the departments, employees, users, and Sanctum token tables, then seeds the development administrator and sample department and employee records. Existing employee rows from the earlier schema are retained and assigned generated legacy values by the migration.
 
 ## 4. Start the API
 
@@ -85,32 +85,34 @@ Accept: application/json
 Content-Type: application/json
 ```
 
-### Register
-
-**POST** `http://127.0.0.1:8000/api/register`
-
-```json
-{
-   "name": "Ada Lovelace",
-   "email": "ada@example.com",
-   "password": "password123"
-}
-```
-
-Use a unique email. Password must be at least 8 characters.
-
 ### Log in and get your token
 
 **POST** `http://127.0.0.1:8000/api/login`
 
 ```json
 {
-   "email": "ada@example.com",
-   "password": "password123"
+   "email": "admin@example.com",
+   "password": "CollegeAdmin123!"
 }
 ```
 
-Copy the `token` value from the response. For every employee request and logout, open Postman's **Authorization** tab, choose **Bearer Token**, and paste the token. Registration does not show its generated token, so log in to get one.
+The seeded account is for development only; change its password before deploying. Copy `data.token` from the response. For every write request and logout, open Postman's **Authorization** tab, choose **Bearer Token**, and paste the token. Department and employee read requests are public.
+
+### List departments
+
+**GET** `http://127.0.0.1:8000/api/departments`
+
+No body. Use a department's `id` in the create-employee request.
+
+### List and search employees
+
+**GET** `http://127.0.0.1:8000/api/employees`
+
+No body. Search and status filters can be combined as query parameters:
+
+**GET** `http://127.0.0.1:8000/api/employees?search=admissions&employment_status=Active&per_page=10`
+
+Search is case-insensitive across employee number, first name, last name, email, and department name. `employment_status` accepts `Active` or `Inactive`; `per_page` is optional and capped at 100.
 
 ### Create an employee
 
@@ -118,10 +120,17 @@ Copy the `token` value from the response. For every employee request and logout,
 
 ```json
 {
-   "name": "Grace Hopper",
-   "position": "Engineer"
+   "department_id": 1,
+   "employee_number": "EMP-2001",
+   "first_name": "Jordan",
+   "last_name": "Lee",
+   "email": "jordan.lee@example.edu",
+   "position": "Records Officer",
+   "employment_status": "Active"
 }
 ```
+
+Use an existing department ID from `GET /api/departments`; employee number and email must be unique.
 
 ### List employees
 
@@ -139,14 +148,16 @@ Replace `1` with the employee's ID. No body.
 
 **PUT** `http://127.0.0.1:8000/api/employees/1`
 
-Replace `1` with the employee's ID. Send one or both fields:
+Replace `1` with the employee's ID. A `PATCH` can send only the fields being changed:
 
 ```json
 {
-   "name": "Grace Hopper",
-   "position": "Senior Engineer"
+   "position": "Senior Records Officer",
+   "employment_status": "Inactive"
 }
 ```
+
+`PUT` and `PATCH` are both supported. `PUT` should include all required employee fields; `PATCH` can include a subset.
 
 ### Delete an employee
 
@@ -160,7 +171,26 @@ Replace `1` with the employee's ID. No body.
 
 No body. This revokes the current token. Log in again to get another token.
 
-All employee endpoints and logout require the Bearer token. Register and login do not.
+The employee create, update, and delete endpoints and logout require a Bearer token. Login and all department and employee read endpoints are public. There is no public registration endpoint; the seeded administrator is used to obtain a token.
+
+## Endpoint summary
+
+| Method | URI | Access | Success status | Purpose |
+| --- | --- | --- | --- | --- |
+| POST | `/api/login` | Public | 200 | Issue a Sanctum token |
+| POST | `/api/logout` | Bearer token | 200 | Revoke the current token |
+| GET | `/api/departments` | Public | 200 | List departments |
+| GET | `/api/employees` | Public | 200 | Paginated, searchable employee list |
+| GET | `/api/employees/{employee}` | Public | 200 | Read one employee with department |
+| POST | `/api/employees` | Bearer token | 201 | Create an employee |
+| PUT/PATCH | `/api/employees/{employee}` | Bearer token | 200 | Update an employee |
+| DELETE | `/api/employees/{employee}` | Bearer token | 204 | Delete an employee |
+
+Success responses use `message`, `data`, and `errors`; employee-list responses also include pagination in `meta`. Validation errors return 422, missing employees return 404, and unauthenticated protected requests return 401. Responses do not include password hashes, token hashes, or exception traces.
+
+## Architecture and production note
+
+Request → API route → Sanctum middleware on write routes → controller → Form Request validation → Eloquent model and relationship → database → Employee Resource → JSON response. For production, add rate limiting to login and write routes to reduce credential guessing and abusive requests; use a shared cache store when running multiple app instances.
 
 ## If something goes wrong
 
