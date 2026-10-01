@@ -1,58 +1,174 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Setup and Postman API Guide
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+This guide covers setting up the Laravel API with XAMPP MySQL and testing it in Postman.
 
-## About Laravel
+## Requirements
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP 8.3 or newer, with the PDO MySQL extension enabled
+- Composer
+- MySQL (for example, the MySQL service included with XAMPP)
+- Postman
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Node.js and npm are not required to run these API endpoints.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Install and configure
 
-## Learning Laravel
+1. Clone or download the project, then open a terminal in the project directory (the directory containing `artisan` and `composer.json`).
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+2. Install PHP dependencies:
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+   ```powershell
+   composer install
+   ```
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+3. Create `.env` from the example if this is a fresh setup. Do not overwrite an existing `.env`:
 
-## Agentic Development
+   ```powershell
+   if (!(Test-Path .env)) { Copy-Item .env.example .env }
+   ```
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+4. Create the MySQL database. Start MySQL from the XAMPP control panel, then run this SQL in phpMyAdmin's SQL tab or a MySQL client:
 
-```bash
-composer require laravel/boost --dev
+   ```sql
+   CREATE DATABASE santiagoDb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   ```
 
-php artisan boost:install
+5. Edit `.env` and set the database connection values. Replace the username or password if your MySQL account differs from the XAMPP default:
+
+   ```dotenv
+   APP_URL=http://127.0.0.1:8000
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_PORT=3306
+   DB_DATABASE=santiagoDb
+   DB_USERNAME=root
+   DB_PASSWORD=
+   ```
+
+   Keep `.env` private; do not commit database credentials.
+
+6. Generate the Laravel application key and apply the migrations:
+
+   ```powershell
+   php artisan key:generate
+   php artisan config:clear
+   php artisan migrate
+   ```
+
+   Migrations create the Laravel support tables, users, Sanctum tokens, and the `employees` table (`id`, `name`, `position`, timestamps). Check the result with:
+
+   ```powershell
+   php artisan migrate:status
+   ```
+
+7. Start the API server:
+
+   ```powershell
+   php artisan serve
+   ```
+
+   Unless Artisan prints a different address, use `http://127.0.0.1:8000` as the base URL. The API base URL is `http://127.0.0.1:8000/api`.
+
+## Postman headers and authentication
+
+For requests with JSON bodies, choose **Body > raw > JSON**. Send these headers:
+
+```text
+Accept: application/json
+Content-Type: application/json
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+The register and login endpoints are public. Logout and all employee endpoints require a Sanctum token. Register first, then log in: registration currently creates a token but does not include it in its response. Copy the `token` returned by login and set Postman's **Authorization** type to **Bearer Token** for protected requests.
 
-## Contributing
+## API endpoints
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 1. Register
 
-## Code of Conduct
+`POST http://127.0.0.1:8000/api/register`
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Body:
 
-## Security Vulnerabilities
+```json
+{
+  "name": "Ada Lovelace",
+  "email": "ada@example.com",
+  "password": "password123"
+}
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+The name is required (up to 100 characters), the email must be unique, and the password must be at least 8 characters. A successful response has status `201`.
 
-## License
+### 2. Log in
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+`POST http://127.0.0.1:8000/api/login`
+
+Body:
+
+```json
+{
+  "email": "ada@example.com",
+  "password": "password123"
+}
+```
+
+Copy the `token` property from the successful response for use as the Bearer token.
+
+### 3. List employees
+
+`GET http://127.0.0.1:8000/api/employees`
+
+Requires Bearer token. No body. Returns an `employees` array.
+
+### 4. Create an employee
+
+`POST http://127.0.0.1:8000/api/employees`
+
+Requires Bearer token.
+
+Body:
+
+```json
+{
+  "name": "Grace Hopper",
+  "position": "Engineer"
+}
+```
+
+Both fields are required. A successful response has status `201` and includes the created `employee`.
+
+### 5. Get one employee
+
+`GET http://127.0.0.1:8000/api/employees/1`
+
+Replace `1` with the employee ID. Requires Bearer token. No body.
+
+### 6. Update an employee
+
+`PUT http://127.0.0.1:8000/api/employees/1`
+
+Replace `1` with the employee ID. Requires Bearer token. Send one or both fields; any provided field is required to be a non-empty string of up to 255 characters.
+
+```json
+{
+  "name": "Grace Hopper",
+  "position": "Senior Engineer"
+}
+```
+
+### 7. Delete an employee
+
+`DELETE http://127.0.0.1:8000/api/employees/1`
+
+Replace `1` with the employee ID. Requires Bearer token. No body.
+
+### 8. Log out
+
+`POST http://127.0.0.1:8000/api/logout`
+
+Requires Bearer token. No body. This revokes the current token; log in again to get a new one.
+
+## Common responses
+
+- `401 Unauthorized`: missing or invalid Bearer token on a protected endpoint, or incorrect login credentials.
+- `404 Not Found`: the requested employee ID does not exist.
+- `422 Unprocessable Content`: request validation failed. The response includes details for the invalid fields.
