@@ -1,174 +1,170 @@
-# Setup and Postman API Guide
+# Setup and Postman Guide
 
-This guide covers setting up the Laravel API with XAMPP MySQL and testing it in Postman.
+Follow these steps to download the project, run it on Windows with XAMPP, and test its API in Postman. You only need Git for the download step; you do not need other Git commands to run the project.
 
-## Requirements
+## What you need
 
-- PHP 8.3 or newer, with the PDO MySQL extension enabled
+- Git
+- XAMPP with PHP 8.3 or newer and MySQL
 - Composer
-- MySQL (for example, the MySQL service included with XAMPP)
 - Postman
 
-Node.js and npm are not required to run these API endpoints.
+Node.js and npm are not needed for this API.
 
-## Install and configure
+## 1. Download the project
 
-1. Clone or download the project, then open a terminal in the project directory (the directory containing `artisan` and `composer.json`).
+Open a terminal in the folder where you want the project saved. Run:
 
-2. Install PHP dependencies:
+```powershell
+git clone https://github.com/Adrian294-AGS/Laravel-course.git
+cd Laravel-course
+```
 
-   ```powershell
-   composer install
-   ```
+The `cd` command opens the downloaded project folder. Keep using this terminal for the commands below.
 
-3. Create `.env` from the example if this is a fresh setup. Do not overwrite an existing `.env`:
+## 2. Install the project
 
-   ```powershell
-   if (!(Test-Path .env)) { Copy-Item .env.example .env }
-   ```
+Run these commands from the project folder:
 
-4. Create the MySQL database. Start MySQL from the XAMPP control panel, then run this SQL in phpMyAdmin's SQL tab or a MySQL client:
+```powershell
+composer install
+Copy-Item .env.example .env
+php artisan key:generate
+```
 
-   ```sql
-   CREATE DATABASE santiagoDb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-   ```
+If you already have a `.env` file, do not run `Copy-Item` again because it would replace your settings.
 
-5. Edit `.env` and set the database connection values. Replace the username or password if your MySQL account differs from the XAMPP default:
+## 3. Create and connect the database
 
-   ```dotenv
-   APP_URL=http://127.0.0.1:8000
-   DB_CONNECTION=mysql
-   DB_HOST=127.0.0.1
-   DB_PORT=3306
-   DB_DATABASE=santiagoDb
-   DB_USERNAME=root
-   DB_PASSWORD=
-   ```
+1. Open the XAMPP Control Panel and start **MySQL**.
+2. Open [http://localhost/phpmyadmin](http://localhost/phpmyadmin).
+3. Click **New**, enter `santiagoDb` as the database name, and click **Create**.
+4. Open the `.env` file in the project folder. Set these values (change the username or password if your MySQL setup is different):
 
-   Keep `.env` private; do not commit database credentials.
+    ```dotenv
+    APP_URL=http://127.0.0.1:8000
+    DB_CONNECTION=mysql
+    DB_HOST=127.0.0.1
+    DB_PORT=3306
+    DB_DATABASE=santiagoDb
+    DB_USERNAME=root
+    DB_PASSWORD=
+    ```
 
-6. Generate the Laravel application key and apply the migrations:
+    Save the file. Do not share or commit `.env`; it can contain private database settings.
 
-   ```powershell
-   php artisan key:generate
-   php artisan config:clear
-   php artisan migrate
-   ```
+5. Back in the terminal, create the tables:
 
-   Migrations create the Laravel support tables, users, Sanctum tokens, and the `employees` table (`id`, `name`, `position`, timestamps). Check the result with:
+    ```powershell
+    php artisan config:clear
+    php artisan migrate
+    ```
 
-   ```powershell
-   php artisan migrate:status
-   ```
+This creates the required Laravel tables and the `employees` table with `id`, `name`, `position`, and timestamps.
 
-7. Start the API server:
+## 4. Start the API
 
-   ```powershell
-   php artisan serve
-   ```
+Run:
 
-   Unless Artisan prints a different address, use `http://127.0.0.1:8000` as the base URL. The API base URL is `http://127.0.0.1:8000/api`.
+```powershell
+php artisan serve
+```
 
-## Postman headers and authentication
+Leave this terminal open while using Postman. The base URL is usually `http://127.0.0.1:8000`. If Artisan prints a different address, use that address instead. The API base URL is:
 
-For requests with JSON bodies, choose **Body > raw > JSON**. Send these headers:
+```text
+http://127.0.0.1:8000/api
+```
+
+## 5. Use the API in Postman
+
+For each request with a body, choose **Body > raw > JSON** and add these headers:
 
 ```text
 Accept: application/json
 Content-Type: application/json
 ```
 
-The register and login endpoints are public. Logout and all employee endpoints require a Sanctum token. Register first, then log in: registration currently creates a token but does not include it in its response. Copy the `token` returned by login and set Postman's **Authorization** type to **Bearer Token** for protected requests.
+### Register
 
-## API endpoints
-
-### 1. Register
-
-`POST http://127.0.0.1:8000/api/register`
-
-Body:
+**POST** `http://127.0.0.1:8000/api/register`
 
 ```json
 {
-  "name": "Ada Lovelace",
-  "email": "ada@example.com",
-  "password": "password123"
+   "name": "Ada Lovelace",
+   "email": "ada@example.com",
+   "password": "password123"
 }
 ```
 
-The name is required (up to 100 characters), the email must be unique, and the password must be at least 8 characters. A successful response has status `201`.
+Use a unique email. Password must be at least 8 characters.
 
-### 2. Log in
+### Log in and get your token
 
-`POST http://127.0.0.1:8000/api/login`
-
-Body:
+**POST** `http://127.0.0.1:8000/api/login`
 
 ```json
 {
-  "email": "ada@example.com",
-  "password": "password123"
+   "email": "ada@example.com",
+   "password": "password123"
 }
 ```
 
-Copy the `token` property from the successful response for use as the Bearer token.
+Copy the `token` value from the response. For every employee request and logout, open Postman's **Authorization** tab, choose **Bearer Token**, and paste the token. Registration does not show its generated token, so log in to get one.
 
-### 3. List employees
+### Create an employee
 
-`GET http://127.0.0.1:8000/api/employees`
-
-Requires Bearer token. No body. Returns an `employees` array.
-
-### 4. Create an employee
-
-`POST http://127.0.0.1:8000/api/employees`
-
-Requires Bearer token.
-
-Body:
+**POST** `http://127.0.0.1:8000/api/employees`
 
 ```json
 {
-  "name": "Grace Hopper",
-  "position": "Engineer"
+   "name": "Grace Hopper",
+   "position": "Engineer"
 }
 ```
 
-Both fields are required. A successful response has status `201` and includes the created `employee`.
+### List employees
 
-### 5. Get one employee
+**GET** `http://127.0.0.1:8000/api/employees`
 
-`GET http://127.0.0.1:8000/api/employees/1`
+No body. Returns the employees saved in the database.
 
-Replace `1` with the employee ID. Requires Bearer token. No body.
+### Get one employee
 
-### 6. Update an employee
+**GET** `http://127.0.0.1:8000/api/employees/1`
 
-`PUT http://127.0.0.1:8000/api/employees/1`
+Replace `1` with the employee's ID. No body.
 
-Replace `1` with the employee ID. Requires Bearer token. Send one or both fields; any provided field is required to be a non-empty string of up to 255 characters.
+### Update an employee
+
+**PUT** `http://127.0.0.1:8000/api/employees/1`
+
+Replace `1` with the employee's ID. Send one or both fields:
 
 ```json
 {
-  "name": "Grace Hopper",
-  "position": "Senior Engineer"
+   "name": "Grace Hopper",
+   "position": "Senior Engineer"
 }
 ```
 
-### 7. Delete an employee
+### Delete an employee
 
-`DELETE http://127.0.0.1:8000/api/employees/1`
+**DELETE** `http://127.0.0.1:8000/api/employees/1`
 
-Replace `1` with the employee ID. Requires Bearer token. No body.
+Replace `1` with the employee's ID. No body.
 
-### 8. Log out
+### Log out
 
-`POST http://127.0.0.1:8000/api/logout`
+**POST** `http://127.0.0.1:8000/api/logout`
 
-Requires Bearer token. No body. This revokes the current token; log in again to get a new one.
+No body. This revokes the current token. Log in again to get another token.
 
-## Common responses
+All employee endpoints and logout require the Bearer token. Register and login do not.
 
-- `401 Unauthorized`: missing or invalid Bearer token on a protected endpoint, or incorrect login credentials.
-- `404 Not Found`: the requested employee ID does not exist.
-- `422 Unprocessable Content`: request validation failed. The response includes details for the invalid fields.
+## If something goes wrong
+
+- `401`: log in and set the Bearer token in Postman.
+- `404`: check the employee ID.
+- `422`: check the field names and values in the JSON body.
+- Database connection error: make sure XAMPP MySQL is running and `.env` has the correct database settings.
