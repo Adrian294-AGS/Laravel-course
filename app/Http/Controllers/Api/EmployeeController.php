@@ -3,50 +3,63 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Employee;
 use Illuminate\Http\Request;
 
 class EmployeeController extends Controller
 {
     public function index()
     {
-        // For testing purposes, return a sample response
         return response()->json([
-            'message' => 'Employees list (protected route)',
-            'employees' => [
-                ['id' => 1, 'name' => 'John Doe', 'position' => 'Developer'],
-                ['id' => 2, 'name' => 'Jane Smith', 'position' => 'Designer']
-            ]
+            'employees' => Employee::orderBy('id')->get(),
         ]);
     }
 
     public function store(Request $request)
     {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'position' => ['required', 'string', 'max:255'],
+        ]);
+
+        $employee = Employee::create($validated);
+
         return response()->json([
-            'message' => 'Employee created successfully (protected route)',
-            'data' => $request->all()
+            'message' => 'Employee created successfully',
+            'employee' => $employee,
         ], 201);
     }
 
     public function show($id)
     {
         return response()->json([
-            'message' => "Employee {$id} details (protected route)",
-            'employee' => ['id' => $id, 'name' => 'Sample Employee', 'position' => 'Manager']
+            'employee' => Employee::findOrFail($id),
         ]);
     }
 
     public function update(Request $request, $id)
     {
+        $employee = Employee::findOrFail($id);
+        $validated = $request->validate([
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'position' => ['sometimes', 'required', 'string', 'max:255'],
+        ]);
+
+        $employee->update($validated);
+
         return response()->json([
-            'message' => "Employee {$id} updated successfully (protected route)",
-            'data' => $request->all()
+            'message' => 'Employee updated successfully',
+            'employee' => $employee->fresh(),
         ]);
     }
 
     public function destroy($id)
     {
+        $employee = Employee::findOrFail($id);
+        $employee->delete();
+
         return response()->json([
-            'message' => "Employee {$id} deleted successfully (protected route)"
+            'message' => 'Employee deleted successfully',
         ]);
     }
 }
